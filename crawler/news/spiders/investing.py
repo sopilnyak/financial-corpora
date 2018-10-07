@@ -5,6 +5,7 @@ from scrapy.selector import Selector
 import re
 import os
 from datetime import datetime, timedelta
+import csv
 
 
 def parse_timestamp(timestamp):
@@ -75,17 +76,26 @@ class InvestingSpider(CrawlSpider):
             self.logger.warning('Unrecognized timestamp "{}"'.format(timestamp))
 
         # Extract main text
-        paragraphs = selector.xpath('//div[@class="WYSIWYG articlePage"]/p/text()').extract()
+        paragraphs = selector.xpath('//div[@class="WYSIWYG articlePage"]//p | //div[@class="WYSIWYG articlePage"]//li')
+        paragraphs = [''.join(paragraph.xpath('.//text()').extract()) for paragraph in paragraphs]
 
         # Save to file
         article_id_regex = re.compile('.*-([0-9]+)')
         output_directory = '../data-investing-com'
         if not os.path.exists(output_directory):
             os.makedirs(output_directory)
-        filename = 'investing-stock-{}-{}.txt'.format(
+        filename = 'investing-stock-{}-{}'.format(
             timestamp.strftime(self.input_format), article_id_regex.findall(response.url)[-1])
-        with open(os.path.join(output_directory, filename), 'w') as file:
-            file.write('\n'.join([title] + [category] +
-                                 [timestamp.strftime('%Y-%m-%d %H:%M')] + paragraphs))
 
-        self.logger.info('Saved file {}'.format(filename))
+        # .txt file with text itself
+        with open(os.path.join(output_directory, filename + '.txt'), 'w') as file:
+            file.write('\n'.join(paragraphs))
+
+        # .csv file with meta information
+        with open(os.path.join(output_directory, filename + '.csv'), 'w') as file:
+            writer = csv.writer(file, delimiter=',')
+            writer.writerow(['url', 'title', 'timestamp', 'agency', 'author', 'category', 'image'])
+            writer.writerow([response.url, title, timestamp.strftime('%Y-%m-%d %H:%M'), 'Reuters',
+                            'unknown', category, 'image_url'])
+
+        self.logger.info('Saved files {} and {}'.format(filename + '.txt', filename + '.csv'))
