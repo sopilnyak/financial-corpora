@@ -58,11 +58,8 @@ class InvestingSpider(CrawlSpider):
         self.logger.info('Crawling url {}'.format(response.url))
         selector = Selector(response=response)
 
-        # Extract meta information
-        title = selector.xpath('//h1[@class="articleHeader"]/text()').extract_first()
-        category = selector.xpath('//div[@class="contentSectionDetails"]//a/text()').extract_first()
+        # Extract and process timestamp
         timestamp = selector.xpath('//div[@class="contentSectionDetails"]//span/text()').extract_first()
-
         try:
             timestamp = parse_timestamp(timestamp)
             if timestamp < self.start_date:
@@ -75,9 +72,23 @@ class InvestingSpider(CrawlSpider):
         except ValueError:
             self.logger.warning('Unrecognized timestamp "{}"'.format(timestamp))
 
+        # Extract meta information
+        agency = selector.xpath('//meta[@property="article:author"]/@content').extract_first()
+        title = selector.xpath('//h1[@class="articleHeader"]/text()').extract_first()
+        category = selector.xpath('//div[@class="contentSectionDetails"]//a/text()').extract_first()
+        image = selector.xpath('//img[@id="carouselImage"]')
+        image_url = image.xpath('./@src').extract_first()
+        image_alt = image.xpath('./@alt').extract_first()
+
+        # Extract author from text
+        possible_author = selector.xpath('//div[@class="WYSIWYG articlePage"]//p//text()').extract_first()
+        author = possible_author[3:] if possible_author and possible_author[:3] == 'By ' else 'unknown'
+
         # Extract main text
         paragraphs = selector.xpath('//div[@class="WYSIWYG articlePage"]//p | //div[@class="WYSIWYG articlePage"]//li')
         paragraphs = [''.join(paragraph.xpath('.//text()').extract()) for paragraph in paragraphs]
+        if author != 'unknown':
+            paragraphs = paragraphs[1:]  # Author is in the first paragraph
 
         # Save to file
         article_id_regex = re.compile('.*-([0-9]+)')
@@ -94,8 +105,8 @@ class InvestingSpider(CrawlSpider):
         # .csv file with meta information
         with open(os.path.join(output_directory, filename + '.csv'), 'w') as file:
             writer = csv.writer(file, delimiter=',')
-            writer.writerow(['url', 'title', 'timestamp', 'agency', 'author', 'category', 'image'])
-            writer.writerow([response.url, title, timestamp.strftime('%Y-%m-%d %H:%M'), 'Reuters',
-                            'unknown', category, 'image_url'])
+            writer.writerow(['url', 'title', 'timestamp', 'agency', 'author', 'category', 'image_url', 'image_alt'])
+            writer.writerow([response.url, title, timestamp.strftime('%Y-%m-%d %H:%M'), agency,
+                            author, category, image_url, image_alt])
 
         self.logger.info('Saved files {} and {}'.format(filename + '.txt', filename + '.csv'))
