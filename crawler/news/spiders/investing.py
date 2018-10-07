@@ -3,9 +3,8 @@ from scrapy.linkextractors import LinkExtractor
 from scrapy.spiders import Rule, CrawlSpider
 from scrapy.selector import Selector
 import re
-import os
 from datetime import datetime, timedelta
-import csv
+from .. import items
 
 
 def parse_timestamp(timestamp):
@@ -57,6 +56,7 @@ class InvestingSpider(CrawlSpider):
     def parse_item(self, response):
         self.logger.info('Crawling url {}'.format(response.url))
         selector = Selector(response=response)
+        item = items.NewsItem()
 
         # Extract and process timestamp
         timestamp = selector.xpath('//div[@class="contentSectionDetails"]//span/text()').extract_first()
@@ -65,48 +65,39 @@ class InvestingSpider(CrawlSpider):
             if timestamp < self.start_date:
                 # Too old article, stop crawling
                 self.do_continue = False
-                return
+                return item
             if timestamp > self.end_date:
                 # Too new article, skipping
-                return
+                return item
         except ValueError:
             self.logger.warning('Unrecognized timestamp "{}"'.format(timestamp))
 
+        item['timestamp'] = timestamp.strftime('%Y-%m-%d %H:%M')
+        item['date'] = timestamp.strftime('%Y-%m-%d')
+
+        # Extract article id
+        item['url'] = response.url
+        article_id_regex = re.compile('.*-([0-9]+)')
+        item['id'] = article_id_regex.findall(item['url'])[-1]
+
         # Extract meta information
-        agency = selector.xpath('//meta[@property="article:author"]/@content').extract_first()
-        title = selector.xpath('//h1[@class="articleHeader"]/text()').extract_first()
-        category = selector.xpath('//div[@class="contentSectionDetails"]//a/text()').extract_first()
+        item['language'] = 'en'
+        item['agency'] = selector.xpath('//meta[@property="article:author"]/@content').extract_first()
+        item['title'] = selector.xpath('//h1[@class="articleHeader"]/text()').extract_first()
+        item['category'] = selector.xpath('//div[@class="contentSectionDetails"]//a/text()').extract_first()
+
         image = selector.xpath('//img[@id="carouselImage"]')
-        image_url = image.xpath('./@src').extract_first()
-        image_alt = image.xpath('./@alt').extract_first()
+        item['image_url'] = image.xpath('./@src').extract_first()
+        item['image_alt'] = image.xpath('./@alt').extract_first()
 
         # Extract author from text
         possible_author = selector.xpath('//div[@class="WYSIWYG articlePage"]//p//text()').extract_first()
-        author = possible_author[3:] if possible_author and possible_author[:3] == 'By ' else 'unknown'
+        item['author'] = possible_author[3:] if possible_author and possible_author[:3] == 'By ' else 'unknown'
 
         # Extract main text
         paragraphs = selector.xpath('//div[@class="WYSIWYG articlePage"]//p | //div[@class="WYSIWYG articlePage"]//li')
-        paragraphs = [''.join(paragraph.xpath('.//text()').extract()) for paragraph in paragraphs]
-        if author != 'unknown':
-            paragraphs = paragraphs[1:]  # Author is in the first paragraph
+        item['paragraphs'] = [''.join(paragraph.xpath('.//text()').extract()) for paragraph in paragraphs]
+        if item['author'] != 'unknown':
+            item['paragraphs'] = item['paragraphs'][1:]  # Author is in the first paragraph
 
-        # Save to file
-        article_id_regex = re.compile('.*-([0-9]+)')
-        output_directory = '../data-investing-com'
-        if not os.path.exists(output_directory):
-            os.makedirs(output_directory)
-        filename = 'investing-stock-{}-{}'.format(
-            timestamp.strftime(self.input_format), article_id_regex.findall(response.url)[-1])
-
-        # .txt file with text itself
-        with open(os.path.join(output_directory, filename + '.txt'), 'w') as file:
-            file.write('\n'.join(paragraphs))
-
-        # .csv file with meta information
-        with open(os.path.join(output_directory, filename + '.csv'), 'w') as file:
-            writer = csv.writer(file, delimiter=',')
-            writer.writerow(['url', 'title', 'timestamp', 'agency', 'author', 'category', 'image_url', 'image_alt'])
-            writer.writerow([response.url, title, timestamp.strftime('%Y-%m-%d %H:%M'), agency,
-                            author, category, image_url, image_alt])
-
-        self.logger.info('Saved files {} and {}'.format(filename + '.txt', filename + '.csv'))
+        return item
