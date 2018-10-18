@@ -1,3 +1,4 @@
 tqdm
 pandas
 Scrapy==1.5.1
+spacy
