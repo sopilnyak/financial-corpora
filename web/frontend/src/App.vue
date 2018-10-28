@@ -24,7 +24,7 @@
     #app {
         font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
         color: #333333;
-        padding: 5em 20em 3em;
+        padding: 5em 18em 3em;
     }
 
     .header {
