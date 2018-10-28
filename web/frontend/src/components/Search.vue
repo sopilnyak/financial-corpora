@@ -230,7 +230,13 @@
     input {
         padding-left: 0.5em;
         border: 0;
-        border-radius: 5px;
+        background: transparent;
+        border-bottom: #82B1FF 2px solid;
+        outline: none;
+    }
+
+    input:focus {
+        border-bottom-color: #2962FF;
     }
 
     .query {

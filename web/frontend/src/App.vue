@@ -18,7 +18,7 @@
 
 <style>
     body {
-        background-color: #ededee;
+        background-color: #F5F5F6;
     }
 
     #app {
