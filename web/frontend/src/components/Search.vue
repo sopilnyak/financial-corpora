@@ -1,7 +1,7 @@
 <template>
     <div v-if="!isLoading && result.length === 0">
         <div class="main-section">
-            <input class="query" v-model="query" ref="query" placeholder="Search..."/>
+            <input class="query" @keyup.enter="postQuery" v-model="query" ref="query" placeholder="Search..."/>
             <label class="option">
                 <input type="checkbox" v-model="isExact"/>
                 Exact matching
@@ -63,7 +63,7 @@
                 <div class="results-title">
                     <a :href="FlaskAddress + document.path" target="_blank">{{ document.filename }}</a>
                 </div>
-                <div class="results-text">{{ document.text }}</div>
+                <div class="results-text" v-html="document.text"></div>
             </div>
         </div>
         <div class="button submit" @click="resetResults()">NEW SEARCH</div>
@@ -86,6 +86,9 @@
                 author: '',
                 FlaskAddress: "http://localhost:5000/"
             }
+        },
+        mounted() {
+            this.$refs.query.focus();
         },
         computed: {
             isLoading() {
@@ -304,4 +307,11 @@
         margin-bottom: 1em;
     }
 
+</style>
+
+<style>
+    .match {
+        color: #0D47A1;
+        font-weight: bold;
+    }
 </style>
