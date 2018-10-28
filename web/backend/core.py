@@ -4,7 +4,6 @@ import json
 
 from whoosh import qparser, query
 from whoosh.highlight import HtmlFormatter
-from whoosh.lang.morph_en import variations
 import whoosh.index as index
 
 path = "financial-corpus"
@@ -17,11 +16,15 @@ app = Flask(__name__)
 
 @app.route('/')
 def search():
-    q = qp.parse(u"politicians")
+    q = qp.parse(request.args.get('query'))
+    limit = int(request.args.get('max_docs'))
+    if limit is None or limit < 1:
+        limit = 10
+
     results_list = []
 
     with ix.searcher() as searcher:
-        results = searcher.search(q)
+        results = searcher.search(q, limit=limit)
         results.formatter = HtmlFormatter(tagname="span")
         n_results = len(results)
         for hit in results:

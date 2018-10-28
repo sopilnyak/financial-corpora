@@ -123,7 +123,7 @@
                 this.result = null;
                 let this_ = this;
                 $.ajax({
-                    url: 'test.json',
+                    url: 'http://localhost:5000',
                     type: 'GET',
                     data: {
                         query: this_.query,
