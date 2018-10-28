@@ -1,0 +1,15 @@
+{
+  "n_results": 30,
+  "results": [
+    {
+      "path": "path1",
+      "filename": "text.txt",
+      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    },
+    {
+      "path": "path2",
+      "filename": "smth.txt",
+      "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua."
+    }
+  ]
+}
