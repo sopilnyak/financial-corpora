@@ -12,6 +12,9 @@
             <div class="button option" @click="addOperator('or')">
                 OR
             </div>
+            <div class="button option" @click="addOperator('not')">
+                NOT
+            </div>
             <label class="short">
                 Max
                 <input v-model="maxDocs"/>
@@ -27,19 +30,28 @@
             <span class="date-middle">&rarr;</span>
             <input class="date-to" type="date" v-model="dateTo"/>
             <button class="button add" @click="addRange('date', dateFrom, dateTo)">+</button>
+            <div class="example">stocks</div>
+            <div class="description">documents containing 'stocks'</div>
 
             <div class="title">Title</div>
             <input v-model="title" @keyup.enter="addField('title', title)" class="field" placeholder="E.g. Trump"/>
             <button class="button add" @click="addField('title', title)">+</button>
+            <div class="example">"stock exchange"</div>
+            <div class="description">documents containing the exact phrase 'stock exchange'</div>
 
             <div class="title">Agency</div>
             <input v-model="agency" @keyup.enter="addField('agency', agency)" class="field" placeholder="E.g. Reuters"/>
             <button class="button add" @click="addField('agency', agency)">+</button>
+            <div class="example">(Russia AND Trump) OR Arabia</div>
+            <div class="description">documents containing either both 'Russia' and 'Trump' or 'Arabia'</div>
 
             <div class="title">Author</div>
             <input v-model="author" @keyup.enter="addField('author', author)" class="field" placeholder="E.g. Stempel"/>
             <div class="button add" @click="addField('author', author)">+</div>
+            <div class="example">title:close</div>
+            <div class="description">documents with titles containing 'close'</div>
         </div>
+
         <div class="button submit" @click="postQuery">SEARCH</div>
     </div>
     <div v-else-if="isLoading">Loading...</div>
@@ -84,8 +96,11 @@
                 this.query += " " + operator.toUpperCase() + " ";
                 this.$refs.query.focus();
             },
-            addField(field, value) {
+            addField(field, value, addQuotes=true) {
                 if (value.length > 0) {
+                    if(addQuotes && value.lastIndexOf(" ") !== -1) {
+                        value = '"' + value + '"';
+                    }
                     this.query += " " + field + ":" + value;
                 }
                 this[field] = '';
@@ -97,7 +112,7 @@
                     ('0' + date.getDate()).slice(-2);
             },
             addRange(field, start, end) {
-                this.addField(field, "[" + this.dateToString(start) + " TO " + this.dateToString(end) + "]");
+                this.addField(field, "[" + this.dateToString(start) + " TO " + this.dateToString(end) + "]", false);
                 this.dateFrom = '';
                 this.dateTo = '';
             },
@@ -110,6 +125,10 @@
                 $.ajax({
                     url: 'test.json',
                     type: 'GET',
+                    data: {
+                        query: this_.query,
+                        max_docs: this_.maxDocs === '' ? -1 : this_.maxDocs
+                    },
                     success: function (response) {
                         this_.result = response;
                     },
@@ -143,11 +162,28 @@
     .section {
         margin-bottom: 2em;
         display: grid;
-        grid-template-columns: [title-start] 5em [field-start] 9em [date-from] 1em [date-to] 9em [add-start] 2.2em [end];
-        grid-template-rows: [header] 3.5em [content] repeat(4, 2.2em);
+        grid-template-columns: [title-start] 5em [field-start] 7em [date-from] 1em [date-to] 7em [add-start] 2.2em
+            [add-end] minmax(5em, 0.5fr) [help-middle] minmax(10em, 0.5fr) [end];
+        grid-template-rows: [header] 3.5em [content] repeat(4, 2.2em) [end];
         justify-content: start;
-        grid-column-gap: 1.5em;
+        grid-column-gap: 1.2em;
         grid-row-gap: 1em;
+    }
+
+    .example {
+        grid-column: add-end / help-middle;
+        justify-self: end;
+        text-align: right;
+        align-self: center;
+        color: #666161;
+        font-size: 0.8em;
+    }
+
+    .description {
+        grid-column: help-middle / end;
+        align-self: center;
+        color: #666161;
+        font-size: 0.8em;
     }
 
     .title {
@@ -180,7 +216,7 @@
     }
 
     .add {
-        grid-column: add-start / end;
+        grid-column: add-start / add-end;
         place-self: stretch;
         font-size: 1.5em;
         border: 0;
@@ -200,7 +236,7 @@
     .main-section {
         width: 100%;
         display: grid;
-        grid-template-columns: [start] auto repeat(2, 5em) [max-start] auto [max-end] 1fr [end];
+        grid-template-columns: [start] auto repeat(3, 5em) [max-start] auto [max-end] 1fr [end];
         grid-template-rows: [input-start] 3em [options-start] auto [end];
         justify-content: start;
         grid-column-gap: 1em;
@@ -216,7 +252,7 @@
 
     .option {
         grid-row: options-start / end;
-        place-self: start;
+        place-self: stretch;
         padding: 0.5em 1em;
         border-radius: 5px;
     }
