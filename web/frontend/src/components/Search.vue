@@ -61,7 +61,7 @@
         <div class="results">
             <div class="results-item" v-for="document in result.results" :key="document.path">
                 <div class="results-title">
-                    <a :href="document.path">{{ document.filename }}</a>
+                    <a :href="FlaskAddress + document.path" target="_blank">{{ document.filename }}</a>
                 </div>
                 <div class="results-text">{{ document.text }}</div>
             </div>
@@ -84,6 +84,7 @@
                 title: '',
                 agency: '',
                 author: '',
+                FlaskAddress: "http://localhost:5000/"
             }
         },
         computed: {
@@ -123,7 +124,7 @@
                 this.result = null;
                 let this_ = this;
                 $.ajax({
-                    url: 'http://localhost:5000',
+                    url: this.FlaskAddress,
                     type: 'GET',
                     data: {
                         query: this_.query,

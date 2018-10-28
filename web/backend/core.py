@@ -11,7 +11,7 @@ path = "financial-corpus"
 ix = index.open_dir(path + "/index")
 qp = qparser.QueryParser("content", schema=ix.schema, termclass=query.Variations)
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="/static", static_folder="../../financial-corpus/data")
 
 
 @app.route('/')
@@ -34,7 +34,7 @@ def search():
             with open(os.path.join(path, "data", hit["filename"]), encoding="utf-8") as file:
                 filecontents = file.read()
             result["text"] = hit.highlights("content", text=filecontents, )
-            result["path"] = os.path.join(path, "data", hit["filename"])
+            result["path"] = "static/" + hit["filename"]
             results_list.append(result)
 
     response = make_response(json.dumps({
