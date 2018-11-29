@@ -27,7 +27,7 @@ class NewsPipeline(object):
             file.write(text)
 
         # .csv file with meta information
-        with open(os.path.join(self.output_directory, filename + '.csv'), 'w') as file:
+        with open(os.path.join(self.output_directory, filename + '.csv'), 'w', encoding='utf-8') as file:
             writer = csv.writer(file, delimiter=',')
             writer.writerow(['language', 'url', 'title', 'timestamp', 'agency',
                              'author', 'category', 'image_url', 'image_alt'])
